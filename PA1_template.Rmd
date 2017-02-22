@@ -41,6 +41,17 @@ names(medianStepPerDay) <- c("Date","Median.Steps")
 totalSteps <- sum(act_filtered$steps)
 
 
+# Ungrouped
+act_NoNA <- filter(act, !is.na(steps))
+allDayAv <- mutate(act_NoNA, avSteps=cumsum(steps), dailyCnt=cumsum(steps>=0), avg=avSteps/dailyCnt)
+
+allDayAv$dateInterval <- paste(allDayAv$date,allDayAv$interval)
+
+
+
+
+
+
 ```
 
 

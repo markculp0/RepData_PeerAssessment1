@@ -50,7 +50,23 @@ names(medianStepPerDay) <- c("Date","Median.Steps")
 
 ```r
 totalSteps <- sum(act_filtered$steps)
+
+
+# Ungrouped
+act_NoNA <- filter(act, !is.na(steps))
+allDayAv <- mutate(act_NoNA, avSteps=cumsum(steps), dailyCnt=cumsum(steps>=0), avg=avSteps/dailyCnt)
+
+allDayAv$dateInterval <- paste(allDayAv$date,allDayAv$interval)
+
+
+plot(allDayAv$dateInterval, allDayAv$avg, type = "l", cex=0.2, asp= NA, xlim<-c(1,15264), ylim = c(1,50))
 ```
+
+```
+## Warning in xy.coords(x, y, xlabel, ylabel, log): NAs introduced by coercion
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 
 
