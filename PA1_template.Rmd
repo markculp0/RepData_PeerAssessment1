@@ -7,14 +7,14 @@ output:
 
 
 ## Loading and preprocessing the data
-```{r}
+```{r results= "hide", message=F, warning=F}
+library(plyr)
+library(dplyr)
+
 # Fork data files from https://github.com/rdpeng/RepData_PeerAssessment1
 # unzip("activity.zip", exdir = "data")
 act <- read.csv("data/activity.csv", header = T)
 act$date <- as.Date(as.character(act$date), "%Y-%m-%d")
-
-library(dplyr)
-
 
 ```
 
@@ -22,14 +22,20 @@ library(dplyr)
 ## What is mean total number of steps taken per day?
 
 ```{r}
-meanStepPerDay <- aggregate(act[,1], list(act$date), mean)
-names(meanStepPerDay) <- c("Date","Mean.Steps")
-totalStepPerDay <- aggregate(act[,1], list(act$date), sum)
-names(totalStepPerDay) <- c("Date", "Total.Steps")
 
-act_filtered <- filter(act, steps!= 0 & !is.na(steps))
-medianStepPerDay <- aggregate(act_filtered[,1], list(act_filtered$date), median)
-names(medianStepPerDay) <- c("Date","Median.Steps")
+
+# Calculate total steps per day
+totalStepPerDay <- aggregate(act[,1], list(act$date), sum)
+names(totalStepPerDay) <- c("date", "total.steps")
+
+# Plot a histogram of the total steps taken per day
+hist(totalStepPerDay$total.steps, xlab = "Total Steps Per Day")
+
+# Calculate mean of the total steps taken per day
+mean(totalStepPerDay$total.steps, na.rm = T)
+
+# Calculate median of the total steps taken per day
+median(totalStepPerDay$total.steps, na.rm = T)
 
 ```
 
@@ -38,26 +44,78 @@ names(medianStepPerDay) <- c("Date","Median.Steps")
 
 ```{r}
 
-totalSteps <- sum(act_filtered$steps)
 
+# Calculate 5 minute interval means
+byInterval <- group_by(act, interval)
+intervalAv <- summarize(byInterval, intrvalMean=mean(steps, na.rm = T))
 
-# Ungrouped
-act_NoNA <- filter(act, !is.na(steps))
-allDayAv <- mutate(act_NoNA, avSteps=cumsum(steps), dailyCnt=cumsum(steps>=0), avg=avSteps/dailyCnt)
+# Create time series of interval averages 
+iaTS <- ts(intervalAv$intrvalMean)
 
-allDayAv$dateInterval <- paste(allDayAv$date,allDayAv$interval)
+# Plot time time series of interval averages
+plot.ts(iaTS, type="l")
 
-
-
-
-
+# Calculate interval w overall highest interval mean
+avgMax <- which.max(intervalAv$intrvalMean)
+intervalAv[avgMax,]
 
 ```
-
-
 
 ## Imputing missing values
 
 
+```{r}
+# Calculate total missing values in dataset
+sum(is.na(act$steps))
+
+
+# Calculate mean steps per day
+meanStepPerDay <- aggregate(act[,1], list(act$date), mean)
+names(meanStepPerDay) <- c("date","mean.steps")
+
+# Fill in missing daily mean calculations with mean over all days
+meanStepPerDay$mean.steps[is.na(meanStepPerDay$mean.steps)] = mean(meanStepPerDay$mean.steps, na.rm = T)
+
+# Add column with daily mean values to new activity data frame
+act_imputed <- arrange(join(act,meanStepPerDay), date)
+
+# Fill NA step values with daily mean values
+act_imputed$steps[is.na(act_imputed$steps)] = act_imputed$mean.steps
+
+totalStepPerDay2 <- aggregate(act_imputed[,1], list(act_imputed$date), sum)
+names(totalStepPerDay2) <- c("date", "total.steps")
+
+# Create histogram from data frame with imputed values
+hist(totalStepPerDay2$total.steps)
+
+# Calculate mean of the total steps taken per day
+mean(totalStepPerDay2$total.steps, na.rm = T)
+
+# Calculate median of the total steps taken per day
+median(totalStepPerDay2$total.steps, na.rm = T)
+
+
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+
+# Add column to describe measurement date as weekday or weekend
+act_imputed$weekday <- weekdays(act_imputed$date)
+act_imputed$weekday  <- ifelse(act_imputed$weekday %in% c("Sunday","Saturday"), "weekend", "weekday")
+
+# Subset the weekend data
+act_weekend <- filter(act_imputed, weekday == "weekend")
+
+# Calculate 5 minute interval means on imputed dataset
+byInterval2 <- group_by(act_weekend, interval)
+intervalAv2 <- summarize(byInterval2, intrvalMean=mean(steps, na.rm = T))
+
+# Create time series of 5 minute interval averages 
+iaTS2 <- ts(intervalAv2$intrvalMean)
+
+# Plot time time series of interval averages
+plot.ts(iaTS2, type="l")
+
+```
