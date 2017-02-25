@@ -18,32 +18,35 @@ act$date <- as.Date(as.character(act$date), "%Y-%m-%d")
 
 
 ```r
+# Calculate total days
+totalDays <- length(unique(sort(act$date)))
+
 # Calculate total steps per day
-totalStepPerDay <- aggregate(act[,1], list(act$date), sum)
-names(totalStepPerDay) <- c("date", "total.steps")
+totalSteps <- aggregate(act[,1], list(act$date), sum)
+totalStepPerDay <- totalSteps$x / totalDays
 
 # Plot a histogram of the total steps taken per day
-hist(totalStepPerDay$total.steps, xlab = "Total Steps Per Day")
+hist(totalStepPerDay, ylim = c(0, 20), main = "Histogram of Total Steps Per Day", xlab = "Total Steps Per Day")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 
 ```r
 # Calculate mean of the total steps taken per day
-mean(totalStepPerDay$total.steps, na.rm = T)
+mean(totalStepPerDay, na.rm = T)
 ```
 
 ```
-## [1] 10766.19
+## [1] 176.4949
 ```
 
 ```r
 # Calculate median of the total steps taken per day
-median(totalStepPerDay$total.steps, na.rm = T)
+median(totalStepPerDay, na.rm = T)
 ```
 
 ```
-## [1] 10765
+## [1] 176.4754
 ```
 
 
@@ -59,7 +62,7 @@ intervalAv <- summarize(byInterval, intrvalMean=mean(steps, na.rm = T))
 iaTS <- ts(intervalAv$intrvalMean)
 
 # Plot time time series of interval averages
-plot.ts(iaTS, type="l")
+plot.ts(iaTS, main = "Daily 5 Minute Intervals", ylab = "Average Steps", type="l")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
@@ -109,41 +112,36 @@ act_imputed <- arrange(join(act,meanStepPerDay), date)
 ```r
 # Fill NA step values with daily mean values
 act_imputed$steps[is.na(act_imputed$steps)] = act_imputed$mean.steps
-```
 
-```
-## Warning in act_imputed$steps[is.na(act_imputed$steps)] = act_imputed
-## $mean.steps: number of items to replace is not a multiple of replacement
-## length
-```
-
-```r
-totalStepPerDay2 <- aggregate(act_imputed[,1], list(act_imputed$date), sum)
-names(totalStepPerDay2) <- c("date", "total.steps")
+# Compute imputed total steps per day
+totalSteps2 <- aggregate(act_imputed[,1], list(act_imputed$date), sum)
+totalStepPerDay2 <- totalSteps2$x / totalDays
 
 # Create histogram from data frame with imputed values
-hist(totalStepPerDay2$total.steps)
+hist(totalStepPerDay2, ylim = c(0, 25), main = "Histogram of Total Steps Per Day\n(With Imputed Values)", xlab = "Total Steps Per Day")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
 ```r
 # Calculate mean of the total steps taken per day
-mean(totalStepPerDay2$total.steps, na.rm = T)
+mean(totalStepPerDay2, na.rm = T)
 ```
 
 ```
-## [1] 10745.3
+## [1] 176.1525
 ```
 
 ```r
 # Calculate median of the total steps taken per day
-median(totalStepPerDay2$total.steps, na.rm = T)
+median(totalStepPerDay2, na.rm = T)
 ```
 
 ```
-## [1] 11015
+## [1] 180.5738
 ```
+
+The introduction of imputed values raised the median value.  The median value was skewed in the original calculation by removing 0 values from the calculation.  The mean value remained fairly constant with higher total values in the 150 to 200 five minute interval periods, and overall less dispersion.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -153,18 +151,40 @@ median(totalStepPerDay2$total.steps, na.rm = T)
 act_imputed$weekday <- weekdays(act_imputed$date)
 act_imputed$weekday  <- ifelse(act_imputed$weekday %in% c("Sunday","Saturday"), "weekend", "weekday")
 
-# Subset the weekend data
+# Subset the weekend and weekday data
 act_weekend <- filter(act_imputed, weekday == "weekend")
+act_weekday <- filter(act_imputed, weekday == "weekday")
 
-# Calculate 5 minute interval means on imputed dataset
+# Calculate 5 minute interval means on imputed weekday datasets
+# By weekend: 
 byInterval2 <- group_by(act_weekend, interval)
 intervalAv2 <- summarize(byInterval2, intrvalMean=mean(steps, na.rm = T))
+# By weekday:
+byInterval3 <- group_by(act_weekday, interval)
+intervalAv3 <- summarize(byInterval3, intrvalMean=mean(steps, na.rm = T))
 
 # Create time series of 5 minute interval averages 
 iaTS2 <- ts(intervalAv2$intrvalMean)
+iaTS3 <- ts(intervalAv3$intrvalMean)
+
+# Panel plot w 2 row, 1 column
+par(mfrow = c(2,1), mar = c(4,4,2,1))
 
 # Plot time time series of interval averages
-plot.ts(iaTS2, type="l")
+plot.ts(iaTS2, type="l", main = "Weekend", ylab = "No. of Steps")
+plot.ts(iaTS3, type="l", main = "Weekday", ylab = "No. of Steps")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+
+Weekend activity levels were overall higher.  Weekday activity levels showed a more pronounced spike in the approximate 110 minute interval period.
+
+
+
+
+
+
+
+
+
